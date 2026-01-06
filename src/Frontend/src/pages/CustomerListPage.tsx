@@ -9,6 +9,7 @@ import {
   Typography,
   styled,
   tableCellClasses,
+  Button,
 } from "@mui/material";
 import { Box, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -22,6 +23,49 @@ interface CustomerListQuery {
   iban: string;
   categoryCode?: string | null;
   categoryDescription?: string | null;
+}
+
+function customersToXml(customers: CustomerListQuery[]): string {
+  const escapeXml = (value: string | number | null | undefined) =>
+    value === null || value === undefined
+      ? ""
+      : String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+
+  const rows = customers
+    .map(
+      (c) => `
+    <Customer>
+      <Id>${escapeXml(c.id)}</Id>
+      <Name>${escapeXml(c.name)}</Name>
+      <Address>${escapeXml(c.address)}</Address>
+      <Email>${escapeXml(c.email)}</Email>
+      <Phone>${escapeXml(c.phone)}</Phone>
+      <Iban>${escapeXml(c.iban)}</Iban>
+      <CategoryCode>${escapeXml(c.categoryCode)}</CategoryCode>
+      <CategoryDescription>${escapeXml(c.categoryDescription)}</CategoryDescription>
+    </Customer>`
+    )
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Customers>
+  ${rows}
+</Customers>`;
+}
+
+function downloadXml(xml: string, filename: string) {
+  const blob = new Blob([xml], { type: "application/xml" });
+  const url = URL.createObjectURL(blob);
+  const downloadLink = document.createElement("a");
+  downloadLink.href = url;
+  downloadLink.download = filename;
+  downloadLink.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function CustomerListPage() {
@@ -39,9 +83,8 @@ export default function CustomerListPage() {
       fetch(`/api/customers/list?${params.toString()}`)
         .then((response) => response.json())
         .then((data) => setList(data as CustomerListQuery[]));
-    }, 300); // 300ms delay
+    }, 300);
 
-    // pulisce il timeout se l'utente digita ancora
     return () => clearTimeout(timeout);
   }, [nameFilter, emailFilter]);
 
@@ -51,18 +94,18 @@ export default function CustomerListPage() {
         Clients
       </Typography>
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, justifyContent: "center" }}>
-        <TextField
-          label="Filter by name"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-        />
-        <TextField
-          label="Filter by email"
-          value={emailFilter}
-          onChange={(e) => setEmailFilter(e.target.value)}
-        />
+      <Box sx={{ display: "flex", gap: 2, mb: 2, justifyContent: "center" }}>
+        <TextField label="Filter by name" value={nameFilter} onChange={(e) => setNameFilter(e.target.value)}/>
+        <TextField label="Filter by email" value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)}/>
+        <Button variant="contained" color="primary" disabled={list.length === 0}onClick={() => {const xml = customersToXml(list); downloadXml(xml, "customers.xml");}}>
+          Export XML 
+          <svg xmlns="http://www.w3.org/2000/svg" height="23" width="23" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 20h14v-2H5v2zm7-18v12l5-5h-3V4h-4v5H7l5 5z" />
+          </svg>
+        </Button>
       </Box>
+      {/* Pulsante Export XML */}
+      <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}></Box>
 
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
