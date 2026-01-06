@@ -1,21 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 10000,
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
+        target: 'https://fuzzy-rotary-phone-v69974jwx664fx96q-5000.app.github.dev',
+        changeOrigin: true,
+        secure: false
       },
       '/swagger': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
+        target: 'https://fuzzy-rotary-phone-v69974jwx664fx96q-5000.app.github.dev',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

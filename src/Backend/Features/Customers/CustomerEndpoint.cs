@@ -10,9 +10,24 @@ namespace Backend.Features.Customers
     {
         public static void MapCustomersEndpoints(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/customers/list", async (BackendContext context) =>
+          app.MapGet("/api/customers/list",
+                async (BackendContext context, HttpRequest request) =>
             {
-                var customers = await context.Customers
+                // Legge i filtri dalla query string
+                var name = request.Query["name"].ToString();
+                var email = request.Query["email"].ToString();
+
+                var query = context.Customers.AsQueryable();
+
+                // Filtro per name (case-insensitive, usa LIKE)
+                if (!string.IsNullOrWhiteSpace(name))
+                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{name}%"));
+
+                // Filtro per email (case-insensitive, usa LIKE)
+                if (!string.IsNullOrWhiteSpace(email))
+                    query = query.Where(c => EF.Functions.Like(c.Email, $"%{email}%"));
+
+                var customers = await query
                     .Select(c => new CustomerListDto
                     {
                         Id = c.Id,
@@ -32,6 +47,7 @@ namespace Backend.Features.Customers
 
                 return Results.Ok(customers);
             });
+
         }
     }
 }

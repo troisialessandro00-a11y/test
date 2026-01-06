@@ -10,6 +10,7 @@ import {
   styled,
   tableCellClasses,
 } from "@mui/material";
+import { Box, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
 
 interface CustomerListQuery {
@@ -23,14 +24,26 @@ interface CustomerListQuery {
   categoryDescription?: string | null;
 }
 
-
 export default function CustomerListPage() {
   const [list, setList] = useState<CustomerListQuery[]>([]);
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+
+  // debounce di 300ms
   useEffect(() => {
-    fetch("/api/customers/list")
-        .then(response => response.json())
-        .then(data => setList(data as CustomerListQuery[]));
-    }, []);
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (nameFilter) params.append("name", nameFilter);
+      if (emailFilter) params.append("email", emailFilter);
+
+      fetch(`/api/customers/list?${params.toString()}`)
+        .then((response) => response.json())
+        .then((data) => setList(data as CustomerListQuery[]));
+    }, 300); // 300ms delay
+
+    // pulisce il timeout se l'utente digita ancora
+    return () => clearTimeout(timeout);
+  }, [nameFilter, emailFilter]);
 
   return (
     <>
@@ -38,11 +51,24 @@ export default function CustomerListPage() {
         Clients
       </Typography>
 
+      <Box sx={{ display: "flex", gap: 2, mb: 3, justifyContent: "center" }}>
+        <TextField
+          label="Filter by name"
+          value={nameFilter}
+          onChange={(e) => setNameFilter(e.target.value)}
+        />
+        <TextField
+          label="Filter by email"
+          value={emailFilter}
+          onChange={(e) => setEmailFilter(e.target.value)}
+        />
+      </Box>
+
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
-                <StyledTableHeadCell>Id</StyledTableHeadCell>
+              <StyledTableHeadCell>Id</StyledTableHeadCell>
               <StyledTableHeadCell>Name</StyledTableHeadCell>
               <StyledTableHeadCell>Address</StyledTableHeadCell>
               <StyledTableHeadCell>Email</StyledTableHeadCell>
@@ -52,7 +78,7 @@ export default function CustomerListPage() {
               <StyledTableHeadCell>Description</StyledTableHeadCell>
             </TableRow>
           </TableHead>
-          
+
           <TableBody>
             {list.map((row) => (
               <TableRow
